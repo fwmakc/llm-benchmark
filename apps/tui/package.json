@@ -13,10 +13,10 @@
   "dependencies": {
     "@llm-benchmark/core": "*",
     "ink": "^5.0.0",
-    "react": "^19.0.0"
+    "react": "^18.3.0"
   },
   "devDependencies": {
-    "@types/react": "^19.0.0",
+    "@types/react": "^18.3.0",
     "tsx": "^4.0.0",
     "typescript": "*"
   }
