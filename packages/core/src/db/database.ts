@@ -1,14 +1,14 @@
 import Database from "better-sqlite3";
 import path from "path";
 import fs from "fs";
+import os from "os";
 import { SCHEMA_SQL } from "./schema.js";
 
 let db: Database.Database | null = null;
 
 function resolveDbPath(dbPath?: string): string {
   if (dbPath) return dbPath;
-  // Default: place .db next to the process cwd
-  return path.join(process.cwd(), "benchmark.db");
+  return path.join(os.homedir(), ".llm-benchmark", "benchmark.db");
 }
 
 /**
