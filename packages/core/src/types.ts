@@ -6,6 +6,9 @@ export interface Model {
   apiKeyEncrypted: string;
   createdAt: number;
   updatedAt: number;
+  temperature: number | null;
+  maxTokens: number | null;
+  baseUrl: string | null;
 }
 
 export interface ModelInput {
@@ -13,6 +16,20 @@ export interface ModelInput {
   provider: string;
   modelId: string;
   apiKey: string;
+  temperature?: number | null;
+  maxTokens?: number | null;
+  baseUrl?: string | null;
+}
+
+export interface ModelUpdateInput {
+  name?: string;
+  provider?: string;
+  modelId?: string;
+  /** Pass new plaintext key to re-encrypt; omit to leave the existing key unchanged */
+  apiKey?: string;
+  temperature?: number | null;
+  maxTokens?: number | null;
+  baseUrl?: string | null;
 }
 
 export interface Criterion {

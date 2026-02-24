@@ -6,7 +6,10 @@ CREATE TABLE IF NOT EXISTS Models (
   model_id    TEXT NOT NULL,
   api_key_encrypted TEXT NOT NULL,
   created_at  INTEGER NOT NULL,
-  updated_at  INTEGER NOT NULL
+  updated_at  INTEGER NOT NULL,
+  temperature REAL,
+  max_tokens  INTEGER,
+  base_url    TEXT
 );
 
 CREATE TABLE IF NOT EXISTS Criteria (

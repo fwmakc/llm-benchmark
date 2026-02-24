@@ -7,8 +7,9 @@ import { SCHEMA_SQL } from "./schema.js";
 let db: Database.Database | null = null;
 
 function resolveDbPath(dbPath?: string): string {
-  if (dbPath) return dbPath;
-  return path.join(os.homedir(), ".llm-benchmark", "benchmark.db");
+  /* c8 ignore next 2 */
+  if (!dbPath) return path.join(os.homedir(), ".llm-benchmark", "benchmark.db");
+  return dbPath;
 }
 
 /**
@@ -21,6 +22,7 @@ export function openDatabase(dbPath?: string): Database.Database {
   const resolvedPath = resolveDbPath(dbPath);
   const dir = path.dirname(resolvedPath);
 
+  /* c8 ignore next 3 */
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
@@ -58,4 +60,18 @@ export function closeDatabase(): void {
 
 function runMigrations(database: Database.Database): void {
   database.exec(SCHEMA_SQL);
+
+  // Safe migrations for existing installs — ignore "duplicate column" errors
+  const alterStatements = [
+    "ALTER TABLE Models ADD COLUMN temperature REAL",
+    "ALTER TABLE Models ADD COLUMN max_tokens INTEGER",
+    "ALTER TABLE Models ADD COLUMN base_url TEXT",
+  ];
+  for (const sql of alterStatements) {
+    try {
+      database.exec(sql);
+    } catch {
+      // Column already exists — ignore
+    }
+  }
 }

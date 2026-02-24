@@ -11,7 +11,7 @@ export { openDatabase, getDatabase, closeDatabase } from "./db/database.js";
 export { encrypt, decrypt, clearKeyCache } from "./security/encryption.js";
 
 // Models
-export { listModels, getModel, addModel, deleteModel, getDecryptedApiKey } from "./models/modelService.js";
+export { listModels, getModel, addModel, updateModel, deleteModel, getDecryptedApiKey } from "./models/modelService.js";
 
 // Types
-export type { Model, ModelInput, Criterion, Run, Response, Score } from "./types.js";
+export type { Model, ModelInput, ModelUpdateInput, Criterion, Run, Response, Score } from "./types.js";
