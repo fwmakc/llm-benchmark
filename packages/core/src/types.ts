@@ -32,12 +32,26 @@ export interface ModelUpdateInput {
   baseUrl?: string | null;
 }
 
-export interface Criterion {
+export interface CriteriaSet {
   id: string;
   name: string;
-  description: string | null;
+  createdAt: number;
+}
+
+export interface Criterion {
+  id: string;
+  setId: string | null;
+  name: string;
+  maxScore: number;
   weight: number;
   createdAt: number;
+}
+
+export interface CriterionInput {
+  setId?: string | null;
+  name: string;
+  maxScore?: number;
+  weight?: number;
 }
 
 export interface Run {

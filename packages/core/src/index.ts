@@ -13,5 +13,8 @@ export { encrypt, decrypt, clearKeyCache } from "./security/encryption.js";
 // Models
 export { listModels, getModel, addModel, updateModel, deleteModel, getDecryptedApiKey } from "./models/modelService.js";
 
+// Criteria
+export { listCriteriaSets, addCriteriaSet, deleteCriteriaSet, listCriteria, addCriterion, deleteCriterion } from "./criteria/criteriaService.js";
+
 // Types
-export type { Model, ModelInput, ModelUpdateInput, Criterion, Run, Response, Score } from "./types.js";
+export type { Model, ModelInput, ModelUpdateInput, CriteriaSet, Criterion, CriterionInput, Run, Response, Score } from "./types.js";

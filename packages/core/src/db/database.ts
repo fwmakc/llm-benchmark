@@ -66,6 +66,8 @@ function runMigrations(database: Database.Database): void {
     "ALTER TABLE Models ADD COLUMN temperature REAL",
     "ALTER TABLE Models ADD COLUMN max_tokens INTEGER",
     "ALTER TABLE Models ADD COLUMN base_url TEXT",
+    "ALTER TABLE Criteria ADD COLUMN set_id TEXT",
+    "ALTER TABLE Criteria ADD COLUMN max_score REAL NOT NULL DEFAULT 10",
   ];
   for (const sql of alterStatements) {
     try {

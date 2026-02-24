@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1771882923879" clover="3.2.0">
-  <project timestamp="1771882923879" name="All files">
-    <metrics statements="69" coveredstatements="68" conditionals="20" coveredconditionals="18" methods="15" coveredmethods="15" elements="104" coveredelements="101" complexity="0" loc="69" ncloc="69" packages="4" files="5" classes="5"/>
+<coverage generated="1771966486260" clover="3.2.0">
+  <project timestamp="1771966486260" name="All files">
+    <metrics statements="94" coveredstatements="93" conditionals="50" coveredconditionals="43" methods="16" coveredmethods="16" elements="160" coveredelements="152" complexity="0" loc="94" ncloc="94" packages="4" files="5" classes="5"/>
     <package name="src">
       <metrics statements="0" coveredstatements="0" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
       <file name="types.ts" path="C:\dev\games\test\neurotest\packages\core\src\types.ts">
@@ -9,28 +9,32 @@
       </file>
     </package>
     <package name="src.db">
-      <metrics statements="20" coveredstatements="19" conditionals="10" coveredconditionals="8" methods="5" coveredmethods="5"/>
+      <metrics statements="24" coveredstatements="23" conditionals="10" coveredconditionals="8" methods="5" coveredmethods="5"/>
       <file name="database.ts" path="C:\dev\games\test\neurotest\packages\core\src\db\database.ts">
-        <metrics statements="19" coveredstatements="18" conditionals="10" coveredconditionals="8" methods="5" coveredmethods="5"/>
+        <metrics statements="23" coveredstatements="22" conditionals="10" coveredconditionals="8" methods="5" coveredmethods="5"/>
         <line num="7" count="2" type="stmt"/>
-        <line num="11" count="10" type="cond" truecount="1" falsecount="1"/>
-        <line num="12" count="10" type="stmt"/>
-        <line num="20" count="11" type="cond" truecount="2" falsecount="0"/>
-        <line num="22" count="10" type="stmt"/>
-        <line num="23" count="10" type="stmt"/>
-        <line num="26" count="10" type="cond" truecount="1" falsecount="1"/>
+        <line num="11" count="14" type="cond" truecount="1" falsecount="1"/>
+        <line num="12" count="14" type="stmt"/>
+        <line num="20" count="15" type="cond" truecount="2" falsecount="0"/>
+        <line num="22" count="14" type="stmt"/>
+        <line num="23" count="14" type="stmt"/>
+        <line num="26" count="14" type="cond" truecount="1" falsecount="1"/>
         <line num="27" count="0" type="stmt"/>
-        <line num="30" count="10" type="stmt"/>
-        <line num="33" count="10" type="stmt"/>
-        <line num="35" count="10" type="stmt"/>
-        <line num="37" count="10" type="stmt"/>
-        <line num="39" count="10" type="stmt"/>
-        <line num="47" count="13" type="cond" truecount="2" falsecount="0"/>
-        <line num="48" count="12" type="stmt"/>
-        <line num="55" count="11" type="cond" truecount="2" falsecount="0"/>
-        <line num="56" count="10" type="stmt"/>
-        <line num="57" count="10" type="stmt"/>
-        <line num="62" count="10" type="stmt"/>
+        <line num="30" count="14" type="stmt"/>
+        <line num="33" count="14" type="stmt"/>
+        <line num="35" count="14" type="stmt"/>
+        <line num="37" count="14" type="stmt"/>
+        <line num="39" count="14" type="stmt"/>
+        <line num="47" count="31" type="cond" truecount="2" falsecount="0"/>
+        <line num="48" count="30" type="stmt"/>
+        <line num="55" count="15" type="cond" truecount="2" falsecount="0"/>
+        <line num="56" count="14" type="stmt"/>
+        <line num="57" count="14" type="stmt"/>
+        <line num="62" count="14" type="stmt"/>
+        <line num="65" count="14" type="stmt"/>
+        <line num="70" count="14" type="stmt"/>
+        <line num="71" count="42" type="stmt"/>
+        <line num="72" count="42" type="stmt"/>
       </file>
       <file name="schema.ts" path="C:\dev\games\test\neurotest\packages\core\src\db\schema.ts">
         <metrics statements="1" coveredstatements="1" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
@@ -38,28 +42,49 @@
       </file>
     </package>
     <package name="src.models">
-      <metrics statements="19" coveredstatements="19" conditionals="4" coveredconditionals="4" methods="6" coveredmethods="6"/>
+      <metrics statements="40" coveredstatements="40" conditionals="34" coveredconditionals="29" methods="7" coveredmethods="7"/>
       <file name="modelService.ts" path="C:\dev\games\test\neurotest\packages\core\src\models\modelService.ts">
-        <metrics statements="19" coveredstatements="19" conditionals="4" coveredconditionals="4" methods="6" coveredmethods="6"/>
-        <line num="17" count="9" type="stmt"/>
-        <line num="30" count="3" type="stmt"/>
-        <line num="31" count="3" type="stmt"/>
-        <line num="34" count="3" type="stmt"/>
-        <line num="39" count="2" type="stmt"/>
-        <line num="40" count="2" type="stmt"/>
-        <line num="41" count="2" type="cond" truecount="2" falsecount="0"/>
-        <line num="46" count="5" type="stmt"/>
-        <line num="47" count="5" type="stmt"/>
-        <line num="48" count="5" type="stmt"/>
-        <line num="49" count="5" type="stmt"/>
-        <line num="51" count="5" type="stmt"/>
-        <line num="56" count="5" type="stmt"/>
-        <line num="69" count="2" type="stmt"/>
-        <line num="70" count="2" type="stmt"/>
-        <line num="71" count="2" type="stmt"/>
-        <line num="79" count="2" type="stmt"/>
-        <line num="80" count="2" type="cond" truecount="2" falsecount="0"/>
-        <line num="81" count="1" type="stmt"/>
+        <metrics statements="40" coveredstatements="40" conditionals="34" coveredconditionals="29" methods="7" coveredmethods="7"/>
+        <line num="20" count="21" type="stmt"/>
+        <line num="36" count="3" type="stmt"/>
+        <line num="37" count="3" type="stmt"/>
+        <line num="40" count="3" type="stmt"/>
+        <line num="45" count="12" type="stmt"/>
+        <line num="46" count="12" type="stmt"/>
+        <line num="47" count="12" type="cond" truecount="2" falsecount="0"/>
+        <line num="52" count="8" type="stmt"/>
+        <line num="53" count="8" type="stmt"/>
+        <line num="54" count="8" type="stmt"/>
+        <line num="55" count="8" type="stmt"/>
+        <line num="57" count="8" type="stmt"/>
+        <line num="65" count="8" type="stmt"/>
+        <line num="85" count="5" type="stmt"/>
+        <line num="86" count="5" type="stmt"/>
+        <line num="87" count="5" type="cond" truecount="2" falsecount="0"/>
+        <line num="89" count="4" type="stmt"/>
+        <line num="90" count="4" type="stmt"/>
+        <line num="91" count="4" type="stmt"/>
+        <line num="93" count="4" type="cond" truecount="2" falsecount="0"/>
+        <line num="94" count="4" type="cond" truecount="1" falsecount="1"/>
+        <line num="95" count="4" type="cond" truecount="1" falsecount="1"/>
+        <line num="96" count="4" type="cond" truecount="2" falsecount="0"/>
+        <line num="97" count="4" type="cond" truecount="1" falsecount="1"/>
+        <line num="98" count="4" type="cond" truecount="1" falsecount="1"/>
+        <line num="99" count="4" type="cond" truecount="2" falsecount="0"/>
+        <line num="100" count="1" type="stmt"/>
+        <line num="101" count="1" type="stmt"/>
+        <line num="102" count="1" type="stmt"/>
+        <line num="105" count="4" type="stmt"/>
+        <line num="106" count="4" type="stmt"/>
+        <line num="108" count="4" type="stmt"/>
+        <line num="109" count="4" type="cond" truecount="1" falsecount="1"/>
+        <line num="110" count="4" type="stmt"/>
+        <line num="115" count="2" type="stmt"/>
+        <line num="116" count="2" type="stmt"/>
+        <line num="117" count="2" type="stmt"/>
+        <line num="125" count="3" type="stmt"/>
+        <line num="126" count="3" type="cond" truecount="2" falsecount="0"/>
+        <line num="127" count="2" type="stmt"/>
       </file>
     </package>
     <package name="src.security">
@@ -71,31 +96,31 @@
         <line num="6" count="2" type="stmt"/>
         <line num="7" count="2" type="stmt"/>
         <line num="9" count="2" type="stmt"/>
-        <line num="12" count="17" type="cond" truecount="2" falsecount="0"/>
-        <line num="14" count="10" type="stmt"/>
-        <line num="16" count="10" type="cond" truecount="2" falsecount="0"/>
-        <line num="17" count="9" type="stmt"/>
-        <line num="18" count="9" type="stmt"/>
-        <line num="19" count="9" type="stmt"/>
-        <line num="22" count="10" type="stmt"/>
-        <line num="23" count="10" type="stmt"/>
-        <line num="31" count="11" type="stmt"/>
-        <line num="32" count="11" type="stmt"/>
-        <line num="33" count="11" type="stmt"/>
-        <line num="35" count="11" type="stmt"/>
-        <line num="36" count="11" type="stmt"/>
-        <line num="38" count="11" type="stmt"/>
-        <line num="45" count="6" type="stmt"/>
-        <line num="46" count="6" type="stmt"/>
-        <line num="47" count="6" type="cond" truecount="2" falsecount="0"/>
-        <line num="49" count="5" type="stmt"/>
-        <line num="50" count="5" type="stmt"/>
-        <line num="51" count="5" type="stmt"/>
-        <line num="52" count="5" type="stmt"/>
-        <line num="54" count="5" type="stmt"/>
-        <line num="55" count="5" type="stmt"/>
-        <line num="57" count="5" type="stmt"/>
-        <line num="62" count="12" type="stmt"/>
+        <line num="12" count="22" type="cond" truecount="2" falsecount="0"/>
+        <line num="14" count="13" type="stmt"/>
+        <line num="16" count="13" type="cond" truecount="2" falsecount="0"/>
+        <line num="17" count="12" type="stmt"/>
+        <line num="18" count="12" type="stmt"/>
+        <line num="19" count="12" type="stmt"/>
+        <line num="22" count="13" type="stmt"/>
+        <line num="23" count="13" type="stmt"/>
+        <line num="31" count="15" type="stmt"/>
+        <line num="32" count="15" type="stmt"/>
+        <line num="33" count="15" type="stmt"/>
+        <line num="35" count="15" type="stmt"/>
+        <line num="36" count="15" type="stmt"/>
+        <line num="38" count="15" type="stmt"/>
+        <line num="45" count="7" type="stmt"/>
+        <line num="46" count="7" type="stmt"/>
+        <line num="47" count="7" type="cond" truecount="2" falsecount="0"/>
+        <line num="49" count="6" type="stmt"/>
+        <line num="50" count="6" type="stmt"/>
+        <line num="51" count="6" type="stmt"/>
+        <line num="52" count="6" type="stmt"/>
+        <line num="54" count="6" type="stmt"/>
+        <line num="55" count="6" type="stmt"/>
+        <line num="57" count="6" type="stmt"/>
+        <line num="62" count="16" type="stmt"/>
       </file>
     </package>
   </project>

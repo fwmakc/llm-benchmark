@@ -12,10 +12,17 @@ CREATE TABLE IF NOT EXISTS Models (
   base_url    TEXT
 );
 
-CREATE TABLE IF NOT EXISTS Criteria (
+CREATE TABLE IF NOT EXISTS CriteriaSets (
   id          TEXT PRIMARY KEY,
   name        TEXT NOT NULL,
-  description TEXT,
+  created_at  INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS Criteria (
+  id          TEXT PRIMARY KEY,
+  set_id      TEXT REFERENCES CriteriaSets(id) ON DELETE SET NULL,
+  name        TEXT NOT NULL,
+  max_score   REAL NOT NULL DEFAULT 10,
   weight      REAL NOT NULL DEFAULT 1.0,
   created_at  INTEGER NOT NULL
 );
