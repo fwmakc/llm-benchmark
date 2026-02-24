@@ -32,6 +32,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Build core (required for type resolution in apps)
+        run: npm run build --workspace=packages/core
+
       - name: Type check
         run: npm run type-check
 
