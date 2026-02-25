@@ -22,9 +22,15 @@ export { createRun, executeRun, listRuns, getRun } from "./runs/runService.js";
 // Scoring
 export { createScoringSession, scoreResponse, getSessionScores, listScoringSessions } from "./scoring/scoringService.js";
 
+// Results
+export { computeResults } from "./results/resultsService.js";
+
+// Export
+export { exportJSON, exportCSV, exportPDF } from "./export/exportService.js";
+
 // Adapters
 export type { ModelAdapter, ModelCallConfig, CompletionResult } from "./adapters/index.js";
 export { getAdapter } from "./adapters/index.js";
 
 // Types
-export type { Model, ModelInput, ModelUpdateInput, Criterion, CriterionInput, CriterionUpdateInput, Run, RunInput, RunWithDetails, Response, ScoringSession, Score } from "./types.js";
+export type { Model, ModelInput, ModelUpdateInput, Criterion, CriterionInput, CriterionUpdateInput, Run, RunInput, RunWithDetails, Response, ScoringSession, Score, CriterionScore, ModelResult, RunResults } from "./types.js";

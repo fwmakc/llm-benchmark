@@ -98,3 +98,36 @@ export interface Score {
   notes: string | null;
   createdAt: number;
 }
+
+// Results
+
+export interface CriterionScore {
+  criterionId: string;
+  criterionName: string;
+  weight: number;
+  maxScore: number;
+  avgRawScore: number;       // average raw score (0..maxScore)
+  avgNormalized: number;     // avgRawScore * 100 / maxScore
+  weightedAvg: number;       // avgNormalized * weight
+}
+
+export interface ModelResult {
+  modelId: string;
+  modelName: string;
+  provider: string;
+  totalScore: number;        // sum of weightedAvg across all criteria
+  criteriaBreakdown: CriterionScore[];
+  responses: {
+    responseId: string;
+    content: string;
+    tokensUsed?: number;
+    latencyMs?: number;
+  }[];
+}
+
+export interface RunResults {
+  runId: string;
+  sessionId: string;
+  prompt: string;
+  rankedModels: ModelResult[];  // sorted by totalScore descending
+}

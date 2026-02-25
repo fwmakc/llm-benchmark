@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { render, Box, Text, useInput, useApp } from "ink";
 import TextInput from "ink-text-input";
+import fs from "fs";
 import {
   openDatabase,
   listModels,
@@ -17,9 +18,25 @@ import {
   getRun,
   createScoringSession,
   scoreResponse,
+  listScoringSessions,
+  computeResults,
+  exportJSON,
+  exportCSV,
+  exportPDF,
   APP_NAME,
 } from "@llm-benchmark/core";
-import type { Model, ModelInput, ModelUpdateInput, Criterion, Run, RunInput, RunWithDetails, Response, ScoringSession } from "@llm-benchmark/core";
+import type {
+  Model,
+  ModelInput,
+  ModelUpdateInput,
+  Criterion,
+  Run,
+  RunInput,
+  RunWithDetails,
+  Response,
+  ScoringSession,
+  RunResults,
+} from "@llm-benchmark/core";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Screen =
@@ -27,7 +44,8 @@ type Screen =
   | "list" | "add" | "adding" | "deleting" | "edit" | "editing"
   | "criteria-list" | "criteria-add" | "criteria-edit"
   | "runs-menu" | "runs-list" | "runs-new" | "runs-running" | "runs-detail"
-  | "scoring-start" | "scoring-response" | "scoring-done";
+  | "scoring-start" | "scoring-response" | "scoring-done"
+  | "results-list" | "results-detail" | "results-export" | "session-picker";
 
 type ModelField = "name" | "provider" | "modelId" | "apiKey" | "temperature" | "maxTokens" | "baseUrl";
 type CriteriaField = "name" | "maxScore" | "weight";
@@ -101,6 +119,16 @@ function App() {
   const [scoringCriterionIdx, setScoringCriterionIdx] = useState(0);
   const [scoringValue, setScoringValue] = useState("");
 
+  // ── Results state ────────────────────────────────────────────────────────────
+  const [resultsData, setResultsData] = useState<RunResults | null>(null);
+  const [resultsCursor, setResultsCursor] = useState(0);
+  const [resultsRunId, setResultsRunId] = useState("");
+  const [resultsSessionId, setResultsSessionId] = useState("");
+
+  // ── Session picker state (when run has multiple sessions) ─────────────────
+  const [sessionPickerList, setSessionPickerList] = useState<ScoringSession[]>([]);
+  const [sessionPickerCursor, setSessionPickerCursor] = useState(0);
+
   function loadModels() {
     try { setModels(listModels()); } catch (e) { setError(String(e)); }
   }
@@ -109,6 +137,20 @@ function App() {
   }
   function loadRuns() {
     try { setRuns(listRuns()); } catch (e) { setError(String(e)); }
+  }
+
+  // Opens results-list for a given run/session.
+  function openResults(runId: string, sessionId: string) {
+    try {
+      const data = computeResults(runId, sessionId);
+      setResultsData(data);
+      setResultsRunId(runId);
+      setResultsSessionId(sessionId);
+      setResultsCursor(0);
+      setScreen("results-list");
+    } catch (e) {
+      setError(String(e));
+    }
   }
 
   useEffect(() => {
@@ -312,6 +354,22 @@ function App() {
         setScoringValue("");
         setScreen("scoring-response");
       }
+      if (input === "r" && detailRun) {
+        const sessions = listScoringSessions(detailRun.id);
+        if (sessions.length === 0) {
+          setError("No scoring sessions for this run.");
+          return;
+        }
+        if (sessions.length === 1) {
+          // Go directly to results
+          openResults(detailRun.id, sessions[0]!.id);
+        } else {
+          // Show session picker
+          setSessionPickerList(sessions);
+          setSessionPickerCursor(0);
+          setScreen("session-picker");
+        }
+      }
       return;
     }
 
@@ -323,6 +381,79 @@ function App() {
     // ── SCORING-DONE ──────────────────────────────────────────────────────────
     if (screen === "scoring-done") {
       if (key.escape || input === "q") { setScreen("runs-menu"); return; }
+      if (input === "r" && scoringSession && detailRun) {
+        openResults(detailRun.id, scoringSession.id);
+      }
+    }
+
+    // ── SESSION-PICKER ────────────────────────────────────────────────────────
+    if (screen === "session-picker") {
+      if (key.escape || key.leftArrow) { setScreen("runs-detail"); return; }
+      if (key.upArrow && sessionPickerCursor > 0) setSessionPickerCursor((c) => c - 1);
+      if (key.downArrow && sessionPickerCursor < sessionPickerList.length - 1) setSessionPickerCursor((c) => c + 1);
+      if (key.return && detailRun) {
+        const session = sessionPickerList[sessionPickerCursor];
+        if (!session) return;
+        openResults(detailRun.id, session.id);
+      }
+      return;
+    }
+
+    // ── RESULTS-LIST ──────────────────────────────────────────────────────────
+    if (screen === "results-list") {
+      if (key.escape || key.leftArrow) { setScreen("runs-detail"); return; }
+      if (key.upArrow && resultsCursor > 0) setResultsCursor((c) => c - 1);
+      if ((key.downArrow) && resultsData && resultsCursor < resultsData.rankedModels.length - 1) {
+        setResultsCursor((c) => c + 1);
+      }
+      if ((key.return || key.rightArrow) && resultsData && resultsData.rankedModels.length > 0) {
+        setScreen("results-detail");
+      }
+      if (input === "e") {
+        setScreen("results-export");
+      }
+      return;
+    }
+
+    // ── RESULTS-DETAIL ────────────────────────────────────────────────────────
+    if (screen === "results-detail") {
+      if (key.escape || key.leftArrow) { setScreen("results-list"); return; }
+    }
+
+    // ── RESULTS-EXPORT ────────────────────────────────────────────────────────
+    if (screen === "results-export") {
+      if (key.escape) { setScreen("results-list"); return; }
+      if (input === "1" && resultsData) {
+        try {
+          const filename = `results-${resultsRunId}-${resultsSessionId}.json`;
+          fs.writeFileSync(filename, exportJSON(resultsData), "utf8");
+          setStatusMsg(`Saved: ${filename}`);
+          setTimeout(() => { setStatusMsg(null); setScreen("results-list"); }, 2000);
+        } catch (e) {
+          setError(String(e));
+        }
+      }
+      if (input === "2" && resultsData) {
+        try {
+          const filename = `results-${resultsRunId}-${resultsSessionId}.csv`;
+          fs.writeFileSync(filename, exportCSV(resultsData), "utf8");
+          setStatusMsg(`Saved: ${filename}`);
+          setTimeout(() => { setStatusMsg(null); setScreen("results-list"); }, 2000);
+        } catch (e) {
+          setError(String(e));
+        }
+      }
+      if (input === "3" && resultsData) {
+        try {
+          const filename = `results-${resultsRunId}-${resultsSessionId}.pdf`;
+          fs.writeFileSync(filename, exportPDF(resultsData));
+          setStatusMsg(`Saved: ${filename}`);
+          setTimeout(() => { setStatusMsg(null); setScreen("results-list"); }, 2000);
+        } catch (e) {
+          setError(String(e));
+        }
+      }
+      return;
     }
   });
 
@@ -704,7 +835,7 @@ function App() {
         <Box flexDirection="column">
           <Text bold>Run Detail</Text>
           <Text>Prompt: {detailRun.prompt.length > 60 ? detailRun.prompt.slice(0, 60) + "…" : detailRun.prompt}</Text>
-          <Text dimColor>[s] score  [q/Esc] back</Text>
+          <Text dimColor>[s] score  [r] view results  [q/Esc] back</Text>
         </Box>
       )}
 
@@ -744,7 +875,104 @@ function App() {
       {screen === "scoring-done" && (
         <Box flexDirection="column">
           <Text bold color="green">Scoring complete!</Text>
-          <Text dimColor>[q/Esc] back to runs menu</Text>
+          <Text dimColor>[r] view results  [Esc] back</Text>
+        </Box>
+      )}
+
+      {/* ── SESSION PICKER ── */}
+      {screen === "session-picker" && (
+        <Box flexDirection="column">
+          <Text bold>Select Scoring Session</Text>
+          <Text dimColor>[↑↓] navigate  [Enter] select  [Esc/←] back</Text>
+          <Text> </Text>
+          {sessionPickerList.map((s, i) => (
+            <Text key={s.id} color={i === sessionPickerCursor ? "yellow" : undefined}>
+              {i === sessionPickerCursor ? "▶ " : "  "}
+              Session {i + 1} — {new Date(s.createdAt).toLocaleString()}
+            </Text>
+          ))}
+        </Box>
+      )}
+
+      {/* ── RESULTS LIST ── */}
+      {screen === "results-list" && resultsData && (
+        <Box flexDirection="column">
+          <Text bold>Results</Text>
+          <Text dimColor>
+            Prompt: {resultsData.prompt.length > 60 ? resultsData.prompt.slice(0, 60) + "…" : resultsData.prompt}
+          </Text>
+          <Text> </Text>
+          {resultsData.rankedModels.length === 0 && <Text dimColor>No results available.</Text>}
+          {resultsData.rankedModels.map((m, i) => (
+            <Text key={m.modelId} color={i === resultsCursor ? "yellow" : undefined}>
+              {i === resultsCursor ? "▶ " : "  "}
+              #{i + 1} {m.modelName} ({m.provider})  ·  Score: {m.totalScore.toFixed(2)}
+            </Text>
+          ))}
+          <Text> </Text>
+          <Text dimColor>[↑↓] navigate  [Enter/→] breakdown  [e] export  [Esc/←] back</Text>
+        </Box>
+      )}
+
+      {/* ── RESULTS DETAIL ── */}
+      {screen === "results-detail" && resultsData && (() => {
+        const model = resultsData.rankedModels[resultsCursor];
+        if (!model) return <Text color="red">No model selected.</Text>;
+        // Column widths for table alignment
+        const colCriterion = 16;
+        const colRaw = 10;
+        const colNorm = 8;
+        const colWeight = 8;
+        const colWeighted = 10;
+        const pad = (s: string, n: number) => s.padEnd(n);
+        const header =
+          pad("Criterion", colCriterion) +
+          pad("Raw", colRaw) +
+          pad("Norm%", colNorm) +
+          pad("Weight", colWeight) +
+          "Weighted";
+        const separator = "─".repeat(colCriterion + colRaw + colNorm + colWeight + colWeighted);
+        return (
+          <Box flexDirection="column">
+            <Text bold>{model.modelName} ({model.provider})</Text>
+            <Text dimColor>Total score: {model.totalScore.toFixed(2)}</Text>
+            <Text> </Text>
+            <Text>{header}</Text>
+            <Text dimColor>{separator}</Text>
+            {model.criteriaBreakdown.map((cs) => {
+              const raw = `${cs.avgRawScore.toFixed(1)}/${cs.maxScore}`;
+              const norm = `${cs.avgNormalized.toFixed(1)}%`;
+              const weight = `×${cs.weight.toFixed(1)}`;
+              const weighted = cs.weightedAvg.toFixed(2);
+              return (
+                <Text key={cs.criterionId}>
+                  {pad(cs.criterionName.slice(0, colCriterion - 1), colCriterion)}
+                  {pad(raw, colRaw)}
+                  {pad(norm, colNorm)}
+                  {pad(weight, colWeight)}
+                  {weighted}
+                </Text>
+              );
+            })}
+            <Text dimColor>{separator}</Text>
+            <Text>
+              {pad("Total", colCriterion + colRaw + colNorm + colWeight)}
+              {model.totalScore.toFixed(2)}
+            </Text>
+            <Text> </Text>
+            <Text dimColor>[Esc/←] back to results list</Text>
+          </Box>
+        );
+      })()}
+
+      {/* ── RESULTS EXPORT ── */}
+      {screen === "results-export" && (
+        <Box flexDirection="column">
+          <Text bold>Export Results</Text>
+          <Text>[1] Export JSON</Text>
+          <Text>[2] Export CSV</Text>
+          <Text>[3] Export PDF</Text>
+          <Text>[Esc] Back</Text>
         </Box>
       )}
 

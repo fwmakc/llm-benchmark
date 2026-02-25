@@ -100,7 +100,20 @@ export default async function RunDetailPage({ params }: Props) {
                 {" \u2014 "}
                 {new Date(session.createdAt).toLocaleString()}
               </span>
-              <span style={{ color: "#999", fontSize: "0.85em" }}>Results in Stage 5</span>
+              <Link
+                href={`/runs/${id}/results/${session.id}`}
+                style={{
+                  fontFamily: "monospace",
+                  fontSize: "0.9em",
+                  padding: "0.3rem 0.75rem",
+                  background: "#333",
+                  color: "#fff",
+                  textDecoration: "none",
+                  borderRadius: 4,
+                }}
+              >
+                View Results &rarr;
+              </Link>
             </div>
           </div>
         ))}
