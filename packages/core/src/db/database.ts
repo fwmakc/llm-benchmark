@@ -59,6 +59,13 @@ export function closeDatabase(): void {
 }
 
 function runMigrations(database: Database.Database): void {
+  // Drop old Scores table before SCHEMA_SQL if it lacks session_id column,
+  // so the new CREATE TABLE IF NOT EXISTS creates it with the correct schema.
+  const scoresColumns = database.pragma("table_info(Scores)") as Array<{ name: string }>;
+  if (scoresColumns.length > 0 && !scoresColumns.some((c) => c.name === "session_id")) {
+    database.exec("DROP TABLE IF EXISTS Scores;");
+  }
+
   database.exec(SCHEMA_SQL);
 
   // Safe migrations for existing installs — ignore "duplicate column" errors

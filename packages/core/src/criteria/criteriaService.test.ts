@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { openDatabase, closeDatabase } from "../db/database.js";
-import { listCriteria, addCriterion, deleteCriterion } from "./criteriaService.js";
+import { listCriteria, addCriterion, deleteCriterion, updateCriterion } from "./criteriaService.js";
 
 beforeEach(() => {
   openDatabase(":memory:");
@@ -41,5 +41,21 @@ describe("deleteCriterion", () => {
 
   it("returns false for unknown id", () => {
     expect(deleteCriterion("no-such-id")).toBe(false);
+  });
+});
+
+describe("updateCriterion", () => {
+  it("updateCriterion — updates name and returns updated criterion", () => {
+    const c = addCriterion({ name: "Original", maxScore: 10, weight: 1 });
+    const updated = updateCriterion(c.id, { name: "Updated" });
+    expect(updated).not.toBeNull();
+    expect(updated?.name).toBe("Updated");
+    expect(updated?.maxScore).toBe(10);
+    expect(updated?.weight).toBe(1);
+  });
+
+  it("updateCriterion — returns null for non-existent id", () => {
+    const result = updateCriterion("no-such-id", { name: "Ghost" });
+    expect(result).toBeNull();
   });
 });

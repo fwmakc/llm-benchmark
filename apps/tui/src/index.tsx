@@ -14,16 +14,20 @@ import {
   listRuns,
   createRun,
   executeRun,
+  getRun,
+  createScoringSession,
+  scoreResponse,
   APP_NAME,
 } from "@llm-benchmark/core";
-import type { Model, ModelInput, ModelUpdateInput, Criterion, Run, RunInput } from "@llm-benchmark/core";
+import type { Model, ModelInput, ModelUpdateInput, Criterion, Run, RunInput, RunWithDetails, Response, ScoringSession } from "@llm-benchmark/core";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Screen =
   | "menu"
   | "list" | "add" | "adding" | "deleting" | "edit" | "editing"
   | "criteria-list" | "criteria-add" | "criteria-edit"
-  | "runs-menu" | "runs-list" | "runs-new" | "runs-running" | "runs-detail";
+  | "runs-menu" | "runs-list" | "runs-new" | "runs-running" | "runs-detail"
+  | "scoring-start" | "scoring-response" | "scoring-done";
 
 type ModelField = "name" | "provider" | "modelId" | "apiKey" | "temperature" | "maxTokens" | "baseUrl";
 type CriteriaField = "name" | "maxScore" | "weight";
@@ -88,6 +92,14 @@ function App() {
   const [newRunPrompt, setNewRunPrompt] = useState("");
   const [newRunRequests, setNewRunRequests] = useState("1");
   const [detailRun, setDetailRun] = useState<Run | null>(null);
+
+  // ── Scoring state ────────────────────────────────────────────────────────────
+  const [scoringRun, setScoringRun] = useState<RunWithDetails | null>(null);
+  const [scoringSession, setScoringSession] = useState<ScoringSession | null>(null);
+  const [scoringResponses, setScoringResponses] = useState<Response[]>([]);
+  const [scoringIdx, setScoringIdx] = useState(0);
+  const [scoringCriterionIdx, setScoringCriterionIdx] = useState(0);
+  const [scoringValue, setScoringValue] = useState("");
 
   function loadModels() {
     try { setModels(listModels()); } catch (e) { setError(String(e)); }
@@ -217,6 +229,12 @@ function App() {
       if (key.escape || input === "q") { setScreen("runs-menu"); return; }
       if (key.upArrow && runsCursor > 0) setRunsCursor((c) => c - 1);
       if (key.downArrow && runsCursor < runs.length - 1) setRunsCursor((c) => c + 1);
+      if (key.return && runs.length > 0) {
+        const run = runs[runsCursor];
+        if (!run) return;
+        setDetailRun(run);
+        setScreen("runs-detail");
+      }
       return;
     }
 
@@ -267,8 +285,44 @@ function App() {
 
     // ── RUNS-DETAIL ───────────────────────────────────────────────────────────
     if (screen === "runs-detail") {
-      if (key.escape || input === "q") { setScreen("runs-menu"); }
+      if (key.escape || input === "q") { setScreen("runs-menu"); return; }
+      if (input === "s" && detailRun) {
+        const fullRun = getRun(detailRun.id);
+        const validResponses = fullRun.responses.filter((r) => !r.errorMsg);
+        if (validResponses.length === 0) {
+          setError("No scoreable responses.");
+          return;
+        }
+        if (fullRun.criteria.length === 0) {
+          setError("No criteria for this run.");
+          return;
+        }
+        // Fisher-Yates shuffle
+        const arr = [...validResponses];
+        for (let i = arr.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [arr[i], arr[j]] = [arr[j]!, arr[i]!];
+        }
+        const session = createScoringSession(fullRun.id);
+        setScoringRun(fullRun);
+        setScoringSession(session);
+        setScoringResponses(arr);
+        setScoringIdx(0);
+        setScoringCriterionIdx(0);
+        setScoringValue("");
+        setScreen("scoring-response");
+      }
       return;
+    }
+
+    // ── SCORING-RESPONSE ──────────────────────────────────────────────────────
+    if (screen === "scoring-response") {
+      if (key.escape) { setScreen("runs-detail"); return; }
+    }
+
+    // ── SCORING-DONE ──────────────────────────────────────────────────────────
+    if (screen === "scoring-done") {
+      if (key.escape || input === "q") { setScreen("runs-menu"); return; }
     }
   });
 
@@ -404,6 +458,37 @@ function App() {
         setError(String(e));
         setScreen("runs-new");
       });
+  }
+
+  // ── Scoring: submit score for current criterion ───────────────────────────
+  function handleScoringValueSubmit(value: string) {
+    if (!scoringRun || !scoringSession) return;
+    const criterion = scoringRun.criteria[scoringCriterionIdx];
+    const response = scoringResponses[scoringIdx];
+    if (!criterion || !response) return;
+
+    const raw = parseFloat(value);
+    const clamped = isNaN(raw) ? 0 : Math.max(0, Math.min(raw, criterion.maxScore));
+
+    scoreResponse({
+      sessionId: scoringSession.id,
+      responseId: response.id,
+      criterionId: criterion.id,
+      score: clamped,
+    });
+
+    // Advance to next criterion, or next response, or done
+    if (scoringCriterionIdx + 1 < scoringRun.criteria.length) {
+      setScoringCriterionIdx((i) => i + 1);
+      setScoringValue("");
+    } else if (scoringIdx + 1 < scoringResponses.length) {
+      setScoringIdx((i) => i + 1);
+      setScoringCriterionIdx(0);
+      setScoringValue("");
+    } else {
+      setStatusMsg(`Scored ${scoringResponses.length} response(s).`);
+      setScreen("scoring-done");
+    }
   }
 
   // ── Render helpers ────────────────────────────────────────────────────────
@@ -553,7 +638,7 @@ function App() {
             </Text>
           ))}
           <Text> </Text>
-          <Text dimColor>[↑↓] navigate  [q/Esc] back</Text>
+          <Text dimColor>[↑↓] navigate  [Enter] open  [q/Esc] back</Text>
         </Box>
       )}
 
@@ -617,9 +702,49 @@ function App() {
       {/* ── RUNS DETAIL ── */}
       {screen === "runs-detail" && detailRun && (
         <Box flexDirection="column">
-          <Text bold>Run Complete</Text>
+          <Text bold>Run Detail</Text>
           <Text>Prompt: {detailRun.prompt.length > 60 ? detailRun.prompt.slice(0, 60) + "…" : detailRun.prompt}</Text>
-          <Text dimColor>[q/Esc] back</Text>
+          <Text dimColor>[s] score  [q/Esc] back</Text>
+        </Box>
+      )}
+
+      {/* ── SCORING RESPONSE ── */}
+      {screen === "scoring-response" && scoringRun && (
+        <Box flexDirection="column">
+          <Text bold>Scoring — Response {(scoringIdx + 1)} of {scoringResponses.length}</Text>
+          <Text dimColor>[Esc] cancel</Text>
+          <Text> </Text>
+          <Text bold>Response content:</Text>
+          <Box borderStyle="single" paddingX={1}>
+            <Text wrap="wrap">
+              {(scoringResponses[scoringIdx]?.content ?? "").slice(0, 500)}
+              {(scoringResponses[scoringIdx]?.content ?? "").length > 500 ? "…" : ""}
+            </Text>
+          </Box>
+          <Text> </Text>
+          {scoringRun.criteria[scoringCriterionIdx] && (
+            <Box>
+              <Text>
+                Criterion {scoringCriterionIdx + 1}/{scoringRun.criteria.length}:{" "}
+                <Text bold>{scoringRun.criteria[scoringCriterionIdx]!.name}</Text>
+                <Text dimColor> (0–{scoringRun.criteria[scoringCriterionIdx]!.maxScore})</Text>
+                {" — "}
+              </Text>
+              <TextInput
+                value={scoringValue}
+                onChange={setScoringValue}
+                onSubmit={handleScoringValueSubmit}
+              />
+            </Box>
+          )}
+        </Box>
+      )}
+
+      {/* ── SCORING DONE ── */}
+      {screen === "scoring-done" && (
+        <Box flexDirection="column">
+          <Text bold color="green">Scoring complete!</Text>
+          <Text dimColor>[q/Esc] back to runs menu</Text>
         </Box>
       )}
 

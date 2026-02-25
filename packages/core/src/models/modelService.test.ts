@@ -122,4 +122,18 @@ describe("updateModel", () => {
   it("updateModel — throws for non-existent id", async () => {
     await expect(updateModel("no-such-id", { name: "Ghost" })).rejects.toThrow("Model not found");
   });
+
+  it("updateModel — updates provider, modelId, maxTokens, and baseUrl fields", async () => {
+    const model = await addModel(sampleInput);
+    const updated = await updateModel(model.id, {
+      provider: "anthropic",
+      modelId: "claude-3-opus",
+      maxTokens: 4096,
+      baseUrl: "https://custom.endpoint/v1",
+    });
+    expect(updated.provider).toBe("anthropic");
+    expect(updated.modelId).toBe("claude-3-opus");
+    expect(updated.maxTokens).toBe(4096);
+    expect(updated.baseUrl).toBe("https://custom.endpoint/v1");
+  });
 });

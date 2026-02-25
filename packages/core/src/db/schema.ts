@@ -50,19 +50,27 @@ CREATE TABLE IF NOT EXISTS Responses (
   created_at  INTEGER NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS ScoringSessions (
+  id         TEXT PRIMARY KEY,
+  run_id     TEXT NOT NULL REFERENCES Runs(id) ON DELETE CASCADE,
+  created_at INTEGER NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS Scores (
-  id            TEXT PRIMARY KEY,
-  response_id   TEXT NOT NULL REFERENCES Responses(id) ON DELETE CASCADE,
-  criterion_id  TEXT NOT NULL REFERENCES Criteria(id) ON DELETE CASCADE,
-  score         REAL NOT NULL,
-  notes         TEXT,
-  created_at    INTEGER NOT NULL
+  id           TEXT PRIMARY KEY,
+  session_id   TEXT NOT NULL REFERENCES ScoringSessions(id) ON DELETE CASCADE,
+  response_id  TEXT NOT NULL REFERENCES Responses(id) ON DELETE CASCADE,
+  criterion_id TEXT NOT NULL REFERENCES Criteria(id) ON DELETE CASCADE,
+  score        REAL NOT NULL,
+  notes        TEXT,
+  created_at   INTEGER NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_run_models_run      ON RunModels(run_id);
 CREATE INDEX IF NOT EXISTS idx_run_criteria_run    ON RunCriteria(run_id);
 CREATE INDEX IF NOT EXISTS idx_responses_run       ON Responses(run_id);
 CREATE INDEX IF NOT EXISTS idx_responses_model     ON Responses(model_id);
+CREATE INDEX IF NOT EXISTS idx_scores_session      ON Scores(session_id);
 CREATE INDEX IF NOT EXISTS idx_scores_response     ON Scores(response_id);
 CREATE INDEX IF NOT EXISTS idx_scores_criterion    ON Scores(criterion_id);
 `;

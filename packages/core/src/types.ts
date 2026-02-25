@@ -83,8 +83,15 @@ export interface Response {
   createdAt: number;
 }
 
+export interface ScoringSession {
+  id: string;
+  runId: string;
+  createdAt: number;
+}
+
 export interface Score {
   id: string;
+  sessionId: string;
   responseId: string;
   criterionId: string;
   score: number;

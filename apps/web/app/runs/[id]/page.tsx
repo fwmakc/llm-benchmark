@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { openDatabase, getRun } from "@llm-benchmark/core";
+import { openDatabase, getRun, listScoringSessions } from "@llm-benchmark/core";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -17,6 +17,8 @@ export default async function RunDetailPage({ params }: Props) {
     notFound();
   }
 
+  const scoringSessions = listScoringSessions(id);
+
   return (
     <main style={{ fontFamily: "monospace", maxWidth: 900, margin: "2rem auto", padding: "0 1rem" }}>
       <div style={{ marginBottom: "1rem" }}>
@@ -32,6 +34,24 @@ export default async function RunDetailPage({ params }: Props) {
         <p><strong>Criteria:</strong> {run.criteria.map((c) => c.name).join(", ") || "\u2014"}</p>
       </section>
 
+      {/* Score this run */}
+      <section style={{ marginBottom: "1.5rem" }}>
+        <Link
+          href={`/runs/${id}/score`}
+          style={{
+            display: "inline-block",
+            padding: "0.5rem 1.25rem",
+            background: "#333",
+            color: "#fff",
+            textDecoration: "none",
+            borderRadius: 4,
+            fontFamily: "monospace",
+          }}
+        >
+          Score this run &rarr;
+        </Link>
+      </section>
+
       <section style={{ marginBottom: "1.5rem" }}>
         <h2>Prompt</h2>
         <pre style={{ background: "#f4f4f4", padding: "1rem", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
@@ -39,7 +59,7 @@ export default async function RunDetailPage({ params }: Props) {
         </pre>
       </section>
 
-      <section>
+      <section style={{ marginBottom: "1.5rem" }}>
         <h2>Responses ({run.responses.length})</h2>
         {run.responses.length === 0 && <p>No responses yet.</p>}
         {run.responses.map((resp, i) => {
@@ -63,6 +83,27 @@ export default async function RunDetailPage({ params }: Props) {
             </div>
           );
         })}
+      </section>
+
+      {/* Past scoring sessions */}
+      <section>
+        <h2>Scoring Sessions ({scoringSessions.length})</h2>
+        {scoringSessions.length === 0 && <p>No scoring sessions yet. Use the button above to score responses.</p>}
+        {scoringSessions.map((session, i) => (
+          <div
+            key={session.id}
+            style={{ border: "1px solid #ccc", padding: "0.75rem 1rem", marginBottom: "0.75rem", borderRadius: 4 }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span>
+                <strong>Session #{scoringSessions.length - i}</strong>
+                {" \u2014 "}
+                {new Date(session.createdAt).toLocaleString()}
+              </span>
+              <span style={{ color: "#999", fontSize: "0.85em" }}>Results in Stage 5</span>
+            </div>
+          </div>
+        ))}
       </section>
     </main>
   );
