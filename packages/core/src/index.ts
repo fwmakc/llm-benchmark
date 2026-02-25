@@ -14,7 +14,14 @@ export { encrypt, decrypt, clearKeyCache } from "./security/encryption.js";
 export { listModels, getModel, addModel, updateModel, deleteModel, getDecryptedApiKey } from "./models/modelService.js";
 
 // Criteria
-export { listCriteriaSets, addCriteriaSet, deleteCriteriaSet, listCriteria, addCriterion, deleteCriterion } from "./criteria/criteriaService.js";
+export { listCriteria, addCriterion, updateCriterion, deleteCriterion } from "./criteria/criteriaService.js";
+
+// Runs
+export { createRun, executeRun, listRuns, getRun } from "./runs/runService.js";
+
+// Adapters
+export type { ModelAdapter, ModelCallConfig, CompletionResult } from "./adapters/index.js";
+export { getAdapter } from "./adapters/index.js";
 
 // Types
-export type { Model, ModelInput, ModelUpdateInput, CriteriaSet, Criterion, CriterionInput, Run, Response, Score } from "./types.js";
+export type { Model, ModelInput, ModelUpdateInput, Criterion, CriterionInput, CriterionUpdateInput, Run, RunInput, RunWithDetails, Response, Score } from "./types.js";

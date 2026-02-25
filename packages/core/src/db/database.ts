@@ -66,7 +66,6 @@ function runMigrations(database: Database.Database): void {
     "ALTER TABLE Models ADD COLUMN temperature REAL",
     "ALTER TABLE Models ADD COLUMN max_tokens INTEGER",
     "ALTER TABLE Models ADD COLUMN base_url TEXT",
-    "ALTER TABLE Criteria ADD COLUMN set_id TEXT",
     "ALTER TABLE Criteria ADD COLUMN max_score REAL NOT NULL DEFAULT 10",
   ];
   for (const sql of alterStatements) {
@@ -75,5 +74,60 @@ function runMigrations(database: Database.Database): void {
     } catch {
       // Column already exists — ignore
     }
+  }
+
+  // Drop CriteriaSets table if it exists (removed from schema)
+  const tables = database.prepare(
+    "SELECT name FROM sqlite_master WHERE type='table' AND name='CriteriaSets'"
+  ).get();
+  if (tables) {
+    // Remove set_id from Criteria by recreating the table
+    const criteriaColumns = database.pragma("table_info(Criteria)") as Array<{ name: string }>;
+    if (criteriaColumns.some((c) => c.name === "set_id")) {
+      database.exec(`
+        CREATE TABLE Criteria_new (
+          id        TEXT PRIMARY KEY,
+          name      TEXT NOT NULL,
+          max_score REAL NOT NULL DEFAULT 10,
+          weight    REAL NOT NULL DEFAULT 1.0,
+          created_at INTEGER NOT NULL
+        );
+        INSERT INTO Criteria_new (id, name, max_score, weight, created_at)
+          SELECT id, name, max_score, weight, created_at FROM Criteria;
+        DROP TABLE Criteria;
+        ALTER TABLE Criteria_new RENAME TO Criteria;
+      `);
+    }
+    database.exec("DROP TABLE IF EXISTS CriteriaSets;");
+  }
+
+  // Migrate Runs table if old schema (has 'name' column instead of 'prompt')
+  const runsColumns = database.pragma("table_info(Runs)") as Array<{ name: string }>;
+  const hasOldRunsSchema =
+    runsColumns.some((c) => c.name === "name") &&
+    !runsColumns.some((c) => c.name === "prompt");
+  if (hasOldRunsSchema) {
+    database.exec(`
+      DROP TABLE IF EXISTS Responses;
+      DROP TABLE IF EXISTS Runs;
+      CREATE TABLE Runs (
+        id                  TEXT PRIMARY KEY,
+        prompt              TEXT NOT NULL,
+        requests_per_model  INTEGER NOT NULL,
+        created_at          INTEGER NOT NULL
+      );
+      CREATE TABLE Responses (
+        id          TEXT PRIMARY KEY,
+        run_id      TEXT NOT NULL REFERENCES Runs(id) ON DELETE CASCADE,
+        model_id    TEXT NOT NULL REFERENCES Models(id) ON DELETE CASCADE,
+        content     TEXT,
+        tokens_used INTEGER,
+        latency_ms  INTEGER,
+        error_msg   TEXT,
+        created_at  INTEGER NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_responses_run    ON Responses(run_id);
+      CREATE INDEX IF NOT EXISTS idx_responses_model  ON Responses(model_id);
+    `);
   }
 }

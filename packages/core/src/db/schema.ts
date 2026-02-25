@@ -12,15 +12,8 @@ CREATE TABLE IF NOT EXISTS Models (
   base_url    TEXT
 );
 
-CREATE TABLE IF NOT EXISTS CriteriaSets (
-  id          TEXT PRIMARY KEY,
-  name        TEXT NOT NULL,
-  created_at  INTEGER NOT NULL
-);
-
 CREATE TABLE IF NOT EXISTS Criteria (
   id          TEXT PRIMARY KEY,
-  set_id      TEXT REFERENCES CriteriaSets(id) ON DELETE SET NULL,
   name        TEXT NOT NULL,
   max_score   REAL NOT NULL DEFAULT 10,
   weight      REAL NOT NULL DEFAULT 1.0,
@@ -28,20 +21,33 @@ CREATE TABLE IF NOT EXISTS Criteria (
 );
 
 CREATE TABLE IF NOT EXISTS Runs (
-  id          TEXT PRIMARY KEY,
-  name        TEXT,
-  created_at  INTEGER NOT NULL,
-  status      TEXT NOT NULL DEFAULT 'pending'
+  id                  TEXT PRIMARY KEY,
+  prompt              TEXT NOT NULL,
+  requests_per_model  INTEGER NOT NULL,
+  created_at          INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS RunModels (
+  run_id    TEXT NOT NULL REFERENCES Runs(id) ON DELETE CASCADE,
+  model_id  TEXT NOT NULL REFERENCES Models(id) ON DELETE CASCADE,
+  PRIMARY KEY (run_id, model_id)
+);
+
+CREATE TABLE IF NOT EXISTS RunCriteria (
+  run_id      TEXT NOT NULL REFERENCES Runs(id) ON DELETE CASCADE,
+  criteria_id TEXT NOT NULL REFERENCES Criteria(id) ON DELETE CASCADE,
+  PRIMARY KEY (run_id, criteria_id)
 );
 
 CREATE TABLE IF NOT EXISTS Responses (
   id          TEXT PRIMARY KEY,
   run_id      TEXT NOT NULL REFERENCES Runs(id) ON DELETE CASCADE,
   model_id    TEXT NOT NULL REFERENCES Models(id) ON DELETE CASCADE,
-  prompt      TEXT NOT NULL,
-  response    TEXT,
-  created_at  INTEGER NOT NULL,
-  latency_ms  INTEGER
+  content     TEXT,
+  tokens_used INTEGER,
+  latency_ms  INTEGER,
+  error_msg   TEXT,
+  created_at  INTEGER NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS Scores (
@@ -53,8 +59,10 @@ CREATE TABLE IF NOT EXISTS Scores (
   created_at    INTEGER NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_responses_run    ON Responses(run_id);
-CREATE INDEX IF NOT EXISTS idx_responses_model  ON Responses(model_id);
-CREATE INDEX IF NOT EXISTS idx_scores_response  ON Scores(response_id);
-CREATE INDEX IF NOT EXISTS idx_scores_criterion ON Scores(criterion_id);
+CREATE INDEX IF NOT EXISTS idx_run_models_run      ON RunModels(run_id);
+CREATE INDEX IF NOT EXISTS idx_run_criteria_run    ON RunCriteria(run_id);
+CREATE INDEX IF NOT EXISTS idx_responses_run       ON Responses(run_id);
+CREATE INDEX IF NOT EXISTS idx_responses_model     ON Responses(model_id);
+CREATE INDEX IF NOT EXISTS idx_scores_response     ON Scores(response_id);
+CREATE INDEX IF NOT EXISTS idx_scores_criterion    ON Scores(criterion_id);
 `;

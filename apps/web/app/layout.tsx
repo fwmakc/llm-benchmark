@@ -25,6 +25,8 @@ export default function RootLayout({
         >
           <Link href="/">Home</Link>
           <Link href="/settings">Settings</Link>
+          <Link href="/criteria">Criteria</Link>
+          <Link href="/runs">Runs</Link>
         </nav>
         {children}
       </body>

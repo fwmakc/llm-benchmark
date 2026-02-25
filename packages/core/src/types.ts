@@ -32,15 +32,8 @@ export interface ModelUpdateInput {
   baseUrl?: string | null;
 }
 
-export interface CriteriaSet {
-  id: string;
-  name: string;
-  createdAt: number;
-}
-
 export interface Criterion {
   id: string;
-  setId: string | null;
   name: string;
   maxScore: number;
   weight: number;
@@ -48,27 +41,46 @@ export interface Criterion {
 }
 
 export interface CriterionInput {
-  setId?: string | null;
   name: string;
+  maxScore?: number;
+  weight?: number;
+}
+
+export interface CriterionUpdateInput {
+  name?: string;
   maxScore?: number;
   weight?: number;
 }
 
 export interface Run {
   id: string;
-  name: string | null;
+  prompt: string;
+  requestsPerModel: number;
   createdAt: number;
-  status: "pending" | "running" | "done" | "failed";
+}
+
+export interface RunInput {
+  prompt: string;
+  requestsPerModel: number;
+  modelIds: string[];
+  criteriaIds: string[];
+}
+
+export interface RunWithDetails extends Run {
+  models: Model[];
+  criteria: Criterion[];
+  responses: Response[];
 }
 
 export interface Response {
   id: string;
   runId: string;
   modelId: string;
-  prompt: string;
-  response: string | null;
-  createdAt: number;
+  content: string | null;
+  tokensUsed: number | null;
   latencyMs: number | null;
+  errorMsg: string | null;
+  createdAt: number;
 }
 
 export interface Score {

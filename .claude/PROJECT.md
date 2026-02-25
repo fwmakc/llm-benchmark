@@ -88,13 +88,8 @@ Models
   baseUrl         TEXT NULL   — custom endpoint (required for Ollama)
   encryptedApiKey TEXT NULL   — AES-256-GCM encrypted, format: iv:tag:ciphertext (base64)
 
-CriteriaSets
-  id              INTEGER PRIMARY KEY
-  name            TEXT        — optional grouping label
-
 Criteria
   id              INTEGER PRIMARY KEY
-  setId           INTEGER NULL  → CriteriaSets.id
   name            TEXT          — e.g. "Точность ответа"
   maxScore        REAL          — e.g. 10
   weight          REAL          — significance multiplier, default 1
@@ -228,11 +223,11 @@ Given a scoring session for a run:
 - DB migration: `ALTER TABLE` for existing installs
 
 ### Stage 2 — Criteria Management (current)
-- DB schema: CriteriaSets + Criteria tables
-- Core: `listCriteriaSets`, `addCriteriaSet`, `deleteCriteriaSet`,
-        `listCriteria`, `addCriterion`, `deleteCriterion`
-- Web UI: criteria page — manage sets and criteria (name, maxScore, weight)
-- TUI: criteria menu item — same operations
+- DB schema: Criteria table (no sets — criteria are flat)
+- Core: `listCriteria`, `addCriterion`, `deleteCriterion`
+- Web UI: `/criteria` page — list, add, delete criteria (name, maxScore, weight)
+- TUI: `[3] Criteria` menu item — same operations
+- **Note**: CriteriaSets removed — criteria are flat, ungrouped
 
 ### Stage 3 — Run Execution (planned)
 - DB schema: Runs, RunModels, RunCriteria, Responses tables

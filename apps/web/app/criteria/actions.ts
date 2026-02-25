@@ -1,38 +1,15 @@
 "use server";
 
-import {
-  openDatabase,
-  listCriteriaSets,
-  addCriteriaSet,
-  deleteCriteriaSet,
-  listCriteria,
-  addCriterion,
-  deleteCriterion,
-} from "@llm-benchmark/core";
-import type { CriteriaSet, Criterion, CriterionInput } from "@llm-benchmark/core";
+import { openDatabase, listCriteria, addCriterion, updateCriterion, deleteCriterion } from "@llm-benchmark/core";
+import type { Criterion, CriterionInput, CriterionUpdateInput } from "@llm-benchmark/core";
 
 function ensureDb() {
   openDatabase();
 }
 
-export async function getSets(): Promise<CriteriaSet[]> {
+export async function getCriteria(): Promise<Criterion[]> {
   ensureDb();
-  return listCriteriaSets();
-}
-
-export async function createSet(name: string): Promise<CriteriaSet> {
-  ensureDb();
-  return addCriteriaSet(name);
-}
-
-export async function removeSet(id: string): Promise<{ ok: boolean }> {
-  ensureDb();
-  return { ok: deleteCriteriaSet(id) };
-}
-
-export async function getCriteria(setId?: string): Promise<Criterion[]> {
-  ensureDb();
-  return listCriteria(setId);
+  return listCriteria();
 }
 
 export async function createCriterion(input: CriterionInput): Promise<Criterion> {
@@ -40,7 +17,14 @@ export async function createCriterion(input: CriterionInput): Promise<Criterion>
   return addCriterion(input);
 }
 
-export async function removeCriterion(id: string): Promise<{ ok: boolean }> {
+export async function editCriterion(id: string, input: CriterionUpdateInput): Promise<Criterion> {
   ensureDb();
-  return { ok: deleteCriterion(id) };
+  const updated = updateCriterion(id, input);
+  if (!updated) throw new Error(`Criterion ${id} not found`);
+  return updated;
+}
+
+export async function removeCriterion(id: string): Promise<void> {
+  ensureDb();
+  deleteCriterion(id);
 }

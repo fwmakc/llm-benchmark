@@ -116,7 +116,51 @@
 <a name='L51'></a><a href='#L51'>51</a>
 <a name='L52'></a><a href='#L52'>52</a>
 <a name='L53'></a><a href='#L53'>53</a>
-<a name='L54'></a><a href='#L54'>54</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">2x</span>
+<a name='L54'></a><a href='#L54'>54</a>
+<a name='L55'></a><a href='#L55'>55</a>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a>
+<a name='L59'></a><a href='#L59'>59</a>
+<a name='L60'></a><a href='#L60'>60</a>
+<a name='L61'></a><a href='#L61'>61</a>
+<a name='L62'></a><a href='#L62'>62</a>
+<a name='L63'></a><a href='#L63'>63</a>
+<a name='L64'></a><a href='#L64'>64</a>
+<a name='L65'></a><a href='#L65'>65</a>
+<a name='L66'></a><a href='#L66'>66</a>
+<a name='L67'></a><a href='#L67'>67</a>
+<a name='L68'></a><a href='#L68'>68</a>
+<a name='L69'></a><a href='#L69'>69</a>
+<a name='L70'></a><a href='#L70'>70</a>
+<a name='L71'></a><a href='#L71'>71</a>
+<a name='L72'></a><a href='#L72'>72</a>
+<a name='L73'></a><a href='#L73'>73</a>
+<a name='L74'></a><a href='#L74'>74</a>
+<a name='L75'></a><a href='#L75'>75</a>
+<a name='L76'></a><a href='#L76'>76</a></td><td class="line-coverage quiet"><span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -183,29 +227,49 @@ CREATE TABLE IF NOT EXISTS Models (
   base_url    TEXT
 );
 &nbsp;
-CREATE TABLE IF NOT EXISTS Criteria (
+CREATE TABLE IF NOT EXISTS CriteriaSets (
   id          TEXT PRIMARY KEY,
   name        TEXT NOT NULL,
-  description TEXT,
+  created_at  INTEGER NOT NULL
+);
+&nbsp;
+CREATE TABLE IF NOT EXISTS Criteria (
+  id          TEXT PRIMARY KEY,
+  set_id      TEXT REFERENCES CriteriaSets(id) ON DELETE SET NULL,
+  name        TEXT NOT NULL,
+  max_score   REAL NOT NULL DEFAULT 10,
   weight      REAL NOT NULL DEFAULT 1.0,
   created_at  INTEGER NOT NULL
 );
 &nbsp;
 CREATE TABLE IF NOT EXISTS Runs (
-  id          TEXT PRIMARY KEY,
-  name        TEXT,
-  created_at  INTEGER NOT NULL,
-  status      TEXT NOT NULL DEFAULT 'pending'
+  id                  TEXT PRIMARY KEY,
+  prompt              TEXT NOT NULL,
+  requests_per_model  INTEGER NOT NULL,
+  created_at          INTEGER NOT NULL
+);
+&nbsp;
+CREATE TABLE IF NOT EXISTS RunModels (
+  run_id    TEXT NOT NULL REFERENCES Runs(id) ON DELETE CASCADE,
+  model_id  TEXT NOT NULL REFERENCES Models(id) ON DELETE CASCADE,
+  PRIMARY KEY (run_id, model_id)
+);
+&nbsp;
+CREATE TABLE IF NOT EXISTS RunCriteria (
+  run_id      TEXT NOT NULL REFERENCES Runs(id) ON DELETE CASCADE,
+  criteria_id TEXT NOT NULL REFERENCES Criteria(id) ON DELETE CASCADE,
+  PRIMARY KEY (run_id, criteria_id)
 );
 &nbsp;
 CREATE TABLE IF NOT EXISTS Responses (
   id          TEXT PRIMARY KEY,
   run_id      TEXT NOT NULL REFERENCES Runs(id) ON DELETE CASCADE,
   model_id    TEXT NOT NULL REFERENCES Models(id) ON DELETE CASCADE,
-  prompt      TEXT NOT NULL,
-  response    TEXT,
-  created_at  INTEGER NOT NULL,
-  latency_ms  INTEGER
+  content     TEXT,
+  tokens_used INTEGER,
+  latency_ms  INTEGER,
+  error_msg   TEXT,
+  created_at  INTEGER NOT NULL
 );
 &nbsp;
 CREATE TABLE IF NOT EXISTS Scores (
@@ -217,10 +281,12 @@ CREATE TABLE IF NOT EXISTS Scores (
   created_at    INTEGER NOT NULL
 );
 &nbsp;
-CREATE INDEX IF NOT EXISTS idx_responses_run    ON Responses(run_id);
-CREATE INDEX IF NOT EXISTS idx_responses_model  ON Responses(model_id);
-CREATE INDEX IF NOT EXISTS idx_scores_response  ON Scores(response_id);
-CREATE INDEX IF NOT EXISTS idx_scores_criterion ON Scores(criterion_id);
+CREATE INDEX IF NOT EXISTS idx_run_models_run      ON RunModels(run_id);
+CREATE INDEX IF NOT EXISTS idx_run_criteria_run    ON RunCriteria(run_id);
+CREATE INDEX IF NOT EXISTS idx_responses_run       ON Responses(run_id);
+CREATE INDEX IF NOT EXISTS idx_responses_model     ON Responses(model_id);
+CREATE INDEX IF NOT EXISTS idx_scores_response     ON Scores(response_id);
+CREATE INDEX IF NOT EXISTS idx_scores_criterion    ON Scores(criterion_id);
 `;
 &nbsp;</pre></td></tr></table></pre>
 
@@ -229,7 +295,7 @@ CREATE INDEX IF NOT EXISTS idx_scores_criterion ON Scores(criterion_id);
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-02-24T20:54:46.243Z
+                at 2026-02-24T21:46:25.482Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

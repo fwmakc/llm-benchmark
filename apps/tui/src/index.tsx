@@ -7,23 +7,23 @@ import {
   addModel,
   updateModel,
   deleteModel,
-  listCriteriaSets,
-  addCriteriaSet,
-  deleteCriteriaSet,
   listCriteria,
   addCriterion,
+  updateCriterion,
   deleteCriterion,
+  listRuns,
+  createRun,
+  executeRun,
   APP_NAME,
 } from "@llm-benchmark/core";
-import type { Model, ModelInput, ModelUpdateInput, CriteriaSet, Criterion } from "@llm-benchmark/core";
+import type { Model, ModelInput, ModelUpdateInput, Criterion, Run, RunInput } from "@llm-benchmark/core";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Screen =
   | "menu"
   | "list" | "add" | "adding" | "deleting" | "edit" | "editing"
-  | "criteria-menu"
-  | "sets-list" | "sets-add"
-  | "criteria-list" | "criteria-add";
+  | "criteria-list" | "criteria-add" | "criteria-edit"
+  | "runs-menu" | "runs-list" | "runs-new" | "runs-running" | "runs-detail";
 
 type ModelField = "name" | "provider" | "modelId" | "apiKey" | "temperature" | "maxTokens" | "baseUrl";
 type CriteriaField = "name" | "maxScore" | "weight";
@@ -67,22 +67,36 @@ function App() {
   const [editFieldIdx, setEditFieldIdx] = useState(0);
 
   // ── Criteria state ──────────────────────────────────────────────────────────
-  const [sets, setSets] = useState<CriteriaSet[]>([]);
-  const [setsCursor, setSetsCursor] = useState(0);
-  const [setName, setSetName] = useState("");
   const [criteria, setCriteria] = useState<Criterion[]>([]);
   const [criteriaCursor, setCriteriaCursor] = useState(0);
   const [criteriaForm, setCriteriaForm] = useState<Record<CriteriaField, string>>(EMPTY_CRITERIA_FORM);
   const [criteriaFieldIdx, setCriteriaFieldIdx] = useState(0);
+  const [editCriterionId, setEditCriterionId] = useState<string | null>(null);
+  const [editCriterionForm, setEditCriterionForm] = useState<Record<CriteriaField, string>>(EMPTY_CRITERIA_FORM);
+  const [editCriterionFieldIdx, setEditCriterionFieldIdx] = useState(0);
+
+  // ── Runs state ───────────────────────────────────────────────────────────────
+  const [runs, setRuns] = useState<Run[]>([]);
+  const [runsCursor, setRunsCursor] = useState(0);
+  const [selectedRunModels, setSelectedRunModels] = useState<Set<string>>(new Set());
+  const [selectedRunCriteria, setSelectedRunCriteria] = useState<Set<string>>(new Set());
+  const [newRunModels, setNewRunModels] = useState<Model[]>([]);
+  const [newRunCriteria, setNewRunCriteria] = useState<Criterion[]>([]);
+  const [newRunModelsCursor, setNewRunModelsCursor] = useState(0);
+  const [newRunCriteriaCursor, setNewRunCriteriaCursor] = useState(0);
+  const [newRunStep, setNewRunStep] = useState<"models" | "criteria" | "prompt" | "requests">("models");
+  const [newRunPrompt, setNewRunPrompt] = useState("");
+  const [newRunRequests, setNewRunRequests] = useState("1");
+  const [detailRun, setDetailRun] = useState<Run | null>(null);
 
   function loadModels() {
     try { setModels(listModels()); } catch (e) { setError(String(e)); }
   }
-  function loadSets() {
-    try { setSets(listCriteriaSets()); } catch (e) { setError(String(e)); }
-  }
   function loadCriteria() {
     try { setCriteria(listCriteria()); } catch (e) { setError(String(e)); }
+  }
+  function loadRuns() {
+    try { setRuns(listRuns()); } catch (e) { setError(String(e)); }
   }
 
   useEffect(() => {
@@ -102,7 +116,8 @@ function App() {
     if (screen === "menu") {
       if (input === "1") { loadModels(); setCursor(0); setScreen("list"); }
       else if (input === "2") { setAddForm(EMPTY_MODEL_FORM); setAddFieldIdx(0); setScreen("add"); }
-      else if (input === "3") { loadSets(); loadCriteria(); setScreen("criteria-menu"); }
+      else if (input === "3") { loadCriteria(); setCriteriaCursor(0); setScreen("criteria-list"); }
+      else if (input === "4") { loadRuns(); setScreen("runs-menu"); }
       else if (input === "q" || key.escape) { exit(); }
       return;
     }
@@ -145,40 +160,20 @@ function App() {
     if (screen === "add") { if (key.escape) { setScreen("menu"); return; } }
     if (screen === "edit") { if (key.escape) { setScreen("list"); return; } }
 
-    // ── CRITERIA-MENU ──────────────────────────────────────────────────────────
-    if (screen === "criteria-menu") {
-      if (input === "1") { loadSets(); setSetsCursor(0); setScreen("sets-list"); }
-      else if (input === "2") { loadCriteria(); setCriteriaCursor(0); setScreen("criteria-list"); }
-      else if (key.escape || input === "q") { setScreen("menu"); }
-      return;
-    }
-
-    // ── SETS-LIST ──────────────────────────────────────────────────────────────
-    if (screen === "sets-list") {
-      if (key.escape || input === "q") { setScreen("criteria-menu"); return; }
-      if (key.upArrow && setsCursor > 0) setSetsCursor((c) => c - 1);
-      if (key.downArrow && setsCursor < sets.length - 1) setSetsCursor((c) => c + 1);
-      if (input === "a") { setSetName(""); setScreen("sets-add"); }
-      if (input === "d" && sets.length > 0) {
-        const id = sets[setsCursor]?.id;
-        if (!id) return;
-        deleteCriteriaSet(id);
-        loadSets();
-        setSetsCursor((c) => Math.max(0, c - 1));
-        setStatusMsg("Set deleted.");
-      }
-      return;
-    }
-
-    // ── SETS-ADD ───────────────────────────────────────────────────────────────
-    if (screen === "sets-add") { if (key.escape) { setScreen("sets-list"); return; } }
-
     // ── CRITERIA-LIST ──────────────────────────────────────────────────────────
     if (screen === "criteria-list") {
-      if (key.escape || input === "q") { setScreen("criteria-menu"); return; }
+      if (key.escape || input === "q") { setScreen("menu"); return; }
       if (key.upArrow && criteriaCursor > 0) setCriteriaCursor((c) => c - 1);
       if (key.downArrow && criteriaCursor < criteria.length - 1) setCriteriaCursor((c) => c + 1);
       if (input === "a") { setCriteriaForm(EMPTY_CRITERIA_FORM); setCriteriaFieldIdx(0); setScreen("criteria-add"); }
+      if (input === "e" && criteria.length > 0) {
+        const c = criteria[criteriaCursor];
+        if (!c) return;
+        setEditCriterionId(c.id);
+        setEditCriterionForm({ name: c.name, maxScore: String(c.maxScore), weight: String(c.weight) });
+        setEditCriterionFieldIdx(0);
+        setScreen("criteria-edit");
+      }
       if (input === "d" && criteria.length > 0) {
         const id = criteria[criteriaCursor]?.id;
         if (!id) return;
@@ -192,6 +187,89 @@ function App() {
 
     // ── CRITERIA-ADD ───────────────────────────────────────────────────────────
     if (screen === "criteria-add") { if (key.escape) { setScreen("criteria-list"); return; } }
+
+    // ── CRITERIA-EDIT ──────────────────────────────────────────────────────────
+    if (screen === "criteria-edit") { if (key.escape) { setScreen("criteria-list"); return; } }
+
+    // ── RUNS-MENU ─────────────────────────────────────────────────────────────
+    if (screen === "runs-menu") {
+      if (input === "1") { loadRuns(); setRunsCursor(0); setScreen("runs-list"); }
+      else if (input === "2") {
+        const ms = listModels();
+        const cs = listCriteria();
+        setNewRunModels(ms);
+        setNewRunCriteria(cs);
+        setSelectedRunModels(new Set());
+        setSelectedRunCriteria(new Set());
+        setNewRunModelsCursor(0);
+        setNewRunCriteriaCursor(0);
+        setNewRunStep("models");
+        setNewRunPrompt("");
+        setNewRunRequests("1");
+        setScreen("runs-new");
+      }
+      else if (key.escape || input === "q") { setScreen("menu"); }
+      return;
+    }
+
+    // ── RUNS-LIST ─────────────────────────────────────────────────────────────
+    if (screen === "runs-list") {
+      if (key.escape || input === "q") { setScreen("runs-menu"); return; }
+      if (key.upArrow && runsCursor > 0) setRunsCursor((c) => c - 1);
+      if (key.downArrow && runsCursor < runs.length - 1) setRunsCursor((c) => c + 1);
+      return;
+    }
+
+    // ── RUNS-NEW (multi-step wizard) ──────────────────────────────────────────
+    if (screen === "runs-new") {
+      if (key.escape) {
+        if (newRunStep === "models") { setScreen("runs-menu"); }
+        else if (newRunStep === "criteria") { setNewRunStep("models"); }
+        else if (newRunStep === "prompt") { setNewRunStep("criteria"); }
+        else if (newRunStep === "requests") { setNewRunStep("prompt"); }
+        return;
+      }
+      if (newRunStep === "models") {
+        if (key.upArrow && newRunModelsCursor > 0) setNewRunModelsCursor((c) => c - 1);
+        if (key.downArrow && newRunModelsCursor < newRunModels.length - 1) setNewRunModelsCursor((c) => c + 1);
+        if (input === " " && newRunModels.length > 0) {
+          const id = newRunModels[newRunModelsCursor]?.id;
+          if (id) {
+            setSelectedRunModels((prev) => {
+              const next = new Set(prev);
+              if (next.has(id)) next.delete(id); else next.add(id);
+              return next;
+            });
+          }
+        }
+        if (key.return) {
+          if (selectedRunModels.size === 0) { setError("Select at least one model."); return; }
+          setError(null);
+          setNewRunStep("criteria");
+        }
+      } else if (newRunStep === "criteria") {
+        if (key.upArrow && newRunCriteriaCursor > 0) setNewRunCriteriaCursor((c) => c - 1);
+        if (key.downArrow && newRunCriteriaCursor < newRunCriteria.length - 1) setNewRunCriteriaCursor((c) => c + 1);
+        if (input === " " && newRunCriteria.length > 0) {
+          const id = newRunCriteria[newRunCriteriaCursor]?.id;
+          if (id) {
+            setSelectedRunCriteria((prev) => {
+              const next = new Set(prev);
+              if (next.has(id)) next.delete(id); else next.add(id);
+              return next;
+            });
+          }
+        }
+        if (key.return) { setNewRunStep("prompt"); }
+      }
+      return;
+    }
+
+    // ── RUNS-DETAIL ───────────────────────────────────────────────────────────
+    if (screen === "runs-detail") {
+      if (key.escape || input === "q") { setScreen("runs-menu"); }
+      return;
+    }
   });
 
   // ── ADD model: advance field on Enter ─────────────────────────────────────
@@ -250,16 +328,6 @@ function App() {
     }
   }
 
-  // ── ADD set: single field submit ──────────────────────────────────────────
-  function handleSetNameSubmit(value: string) {
-    const trimmed = value.trim();
-    if (!trimmed) { setScreen("sets-list"); return; }
-    addCriteriaSet(trimmed);
-    loadSets();
-    setStatusMsg("Set added.");
-    setScreen("sets-list");
-  }
-
   // ── ADD criterion: advance field on Enter ─────────────────────────────────
   function handleCriteriaFieldSubmit(value: string) {
     const field = CRITERIA_FIELDS[criteriaFieldIdx];
@@ -280,6 +348,62 @@ function App() {
       setStatusMsg("Criterion added.");
       setScreen("criteria-list");
     }
+  }
+
+  // ── EDIT criterion: advance field on Enter ───────────────────────────────
+  function handleCriteriaEditFieldSubmit(value: string) {
+    const field = CRITERIA_FIELDS[editCriterionFieldIdx];
+    if (!field) return;
+    const updatedForm = { ...editCriterionForm, [field]: value };
+    setEditCriterionForm(updatedForm);
+    if (editCriterionFieldIdx < CRITERIA_FIELDS.length - 1) {
+      setEditCriterionFieldIdx((i) => i + 1);
+    } else {
+      const maxScoreStr = updatedForm.maxScore.trim();
+      const weightStr = updatedForm.weight.trim();
+      updateCriterion(editCriterionId!, {
+        name: updatedForm.name || undefined,
+        maxScore: maxScoreStr !== "" ? parseFloat(maxScoreStr) : undefined,
+        weight: weightStr !== "" ? parseFloat(weightStr) : undefined,
+      });
+      loadCriteria();
+      setStatusMsg("Criterion updated.");
+      setScreen("criteria-list");
+    }
+  }
+
+  // ── Run wizard: prompt submit ─────────────────────────────────────────────
+  function handleRunPromptSubmit(value: string) {
+    const trimmed = value.trim();
+    if (!trimmed) { setError("Prompt cannot be empty."); return; }
+    setNewRunPrompt(trimmed);
+    setNewRunRequests("1");
+    setNewRunStep("requests");
+  }
+
+  // ── Run wizard: requests submit ───────────────────────────────────────────
+  function handleRunRequestsSubmit(value: string) {
+    const n = parseInt(value, 10);
+    if (!n || n < 1) { setError("Enter a number >= 1."); return; }
+    setScreen("runs-running");
+    const input: RunInput = {
+      prompt: newRunPrompt,
+      requestsPerModel: n,
+      modelIds: Array.from(selectedRunModels),
+      criteriaIds: Array.from(selectedRunCriteria),
+    };
+    const run = createRun(input);
+    executeRun(run.id)
+      .then(() => {
+        loadRuns();
+        setDetailRun(run);
+        setStatusMsg("Run complete.");
+        setScreen("runs-detail");
+      })
+      .catch((e: unknown) => {
+        setError(String(e));
+        setScreen("runs-new");
+      });
   }
 
   // ── Render helpers ────────────────────────────────────────────────────────
@@ -330,6 +454,7 @@ function App() {
           <Text>[1] Models</Text>
           <Text>[2] Add model</Text>
           <Text>[3] Criteria</Text>
+          <Text>[4] Runs</Text>
           <Text>[q] Quit</Text>
         </Box>
       )}
@@ -369,44 +494,6 @@ function App() {
         </Box>
       )}
 
-      {/* ── CRITERIA MENU ── */}
-      {screen === "criteria-menu" && (
-        <Box flexDirection="column">
-          <Text bold>Criteria</Text>
-          <Text>[1] Manage sets</Text>
-          <Text>[2] Manage criteria</Text>
-          <Text>[q/Esc] back</Text>
-        </Box>
-      )}
-
-      {/* ── SETS LIST ── */}
-      {screen === "sets-list" && (
-        <Box flexDirection="column">
-          <Text bold>Criteria Sets ({sets.length})</Text>
-          {sets.length === 0 && <Text dimColor>No sets yet.</Text>}
-          {sets.map((s, i) => (
-            <Text key={s.id} color={i === setsCursor ? "yellow" : undefined}>
-              {i === setsCursor ? "▶ " : "  "}{s.name}
-            </Text>
-          ))}
-          <Text> </Text>
-          <Text dimColor>[↑↓] navigate  [a] add  [d] delete  [q/Esc] back</Text>
-        </Box>
-      )}
-
-      {/* ── ADD SET ── */}
-      {screen === "sets-add" && (
-        <Box flexDirection="column">
-          <Text bold>Add Criteria Set</Text>
-          <Text dimColor>[Esc] cancel</Text>
-          <Text> </Text>
-          <Box>
-            <Text>Set name: </Text>
-            <TextInput value={setName} onChange={setSetName} onSubmit={handleSetNameSubmit} />
-          </Box>
-        </Box>
-      )}
-
       {/* ── CRITERIA LIST ── */}
       {screen === "criteria-list" && (
         <Box flexDirection="column">
@@ -419,7 +506,17 @@ function App() {
             </Text>
           ))}
           <Text> </Text>
-          <Text dimColor>[↑↓] navigate  [a] add  [d] delete  [q/Esc] back</Text>
+          <Text dimColor>[↑↓] navigate  [a] add  [e] edit  [d] delete  [q/Esc] back</Text>
+        </Box>
+      )}
+
+      {/* ── EDIT CRITERION ── */}
+      {screen === "criteria-edit" && (
+        <Box flexDirection="column">
+          <Text bold>Edit Criterion</Text>
+          <Text dimColor>[Esc] cancel</Text>
+          <Text> </Text>
+          {renderFieldForm(CRITERIA_FIELDS, CRITERIA_LABELS, editCriterionForm, editCriterionFieldIdx, setEditCriterionForm, handleCriteriaEditFieldSubmit)}
         </Box>
       )}
 
@@ -430,6 +527,99 @@ function App() {
           <Text dimColor>[Esc] cancel</Text>
           <Text> </Text>
           {renderFieldForm(CRITERIA_FIELDS, CRITERIA_LABELS, criteriaForm, criteriaFieldIdx, setCriteriaForm, handleCriteriaFieldSubmit)}
+        </Box>
+      )}
+
+      {/* ── RUNS MENU ── */}
+      {screen === "runs-menu" && (
+        <Box flexDirection="column">
+          <Text bold>Runs</Text>
+          <Text>[1] List runs</Text>
+          <Text>[2] New run</Text>
+          <Text>[q/Esc] back</Text>
+        </Box>
+      )}
+
+      {/* ── RUNS LIST ── */}
+      {screen === "runs-list" && (
+        <Box flexDirection="column">
+          <Text bold>Runs ({runs.length})</Text>
+          {runs.length === 0 && <Text dimColor>No runs yet.</Text>}
+          {runs.map((r, i) => (
+            <Text key={r.id} color={i === runsCursor ? "yellow" : undefined}>
+              {i === runsCursor ? "▶ " : "  "}
+              {r.prompt.length > 60 ? r.prompt.slice(0, 60) + "…" : r.prompt}
+              <Text dimColor> ({r.requestsPerModel}req)</Text>
+            </Text>
+          ))}
+          <Text> </Text>
+          <Text dimColor>[↑↓] navigate  [q/Esc] back</Text>
+        </Box>
+      )}
+
+      {/* ── RUNS NEW (wizard) ── */}
+      {screen === "runs-new" && (
+        <Box flexDirection="column">
+          <Text bold>New Run</Text>
+          <Text dimColor>[Esc] back  [Space] toggle  [Enter] next</Text>
+          <Text> </Text>
+          {newRunStep === "models" && (
+            <Box flexDirection="column">
+              <Text bold>Step 1/4: Select models</Text>
+              {newRunModels.length === 0 && <Text dimColor>No models configured.</Text>}
+              {newRunModels.map((m, i) => (
+                <Text key={m.id} color={i === newRunModelsCursor ? "yellow" : undefined}>
+                  {selectedRunModels.has(m.id) ? "[x] " : "[ ] "}
+                  {i === newRunModelsCursor ? "▶ " : "  "}
+                  {m.name} — {m.provider}/{m.modelId}
+                </Text>
+              ))}
+            </Box>
+          )}
+          {newRunStep === "criteria" && (
+            <Box flexDirection="column">
+              <Text bold>Step 2/4: Select criteria (optional)</Text>
+              {newRunCriteria.length === 0 && <Text dimColor>No criteria configured.</Text>}
+              {newRunCriteria.map((c, i) => (
+                <Text key={c.id} color={i === newRunCriteriaCursor ? "yellow" : undefined}>
+                  {selectedRunCriteria.has(c.id) ? "[x] " : "[ ] "}
+                  {i === newRunCriteriaCursor ? "▶ " : "  "}
+                  {c.name}
+                </Text>
+              ))}
+              <Text dimColor>[Enter] to continue (criteria are optional)</Text>
+            </Box>
+          )}
+          {newRunStep === "prompt" && (
+            <Box flexDirection="column">
+              <Text bold>Step 3/4: Enter prompt</Text>
+              <Box>
+                <Text>Prompt: </Text>
+                <TextInput value={newRunPrompt} onChange={setNewRunPrompt} onSubmit={handleRunPromptSubmit} />
+              </Box>
+            </Box>
+          )}
+          {newRunStep === "requests" && (
+            <Box flexDirection="column">
+              <Text bold>Step 4/4: Requests per model</Text>
+              <Box>
+                <Text>Requests per model: </Text>
+                <TextInput value={newRunRequests} onChange={setNewRunRequests} onSubmit={handleRunRequestsSubmit} />
+              </Box>
+            </Box>
+          )}
+        </Box>
+      )}
+
+      {/* ── RUNS RUNNING ── */}
+      {screen === "runs-running" && <Text>Running... (this may take a moment)</Text>}
+
+      {/* ── RUNS DETAIL ── */}
+      {screen === "runs-detail" && detailRun && (
+        <Box flexDirection="column">
+          <Text bold>Run Complete</Text>
+          <Text>Prompt: {detailRun.prompt.length > 60 ? detailRun.prompt.slice(0, 60) + "…" : detailRun.prompt}</Text>
+          <Text dimColor>[q/Esc] back</Text>
         </Box>
       )}
 
